@@ -28,6 +28,18 @@
 
 /// A subclass of UIView which allows you to draw on the view using your fingers
 open class TouchDrawView: UIImageView {
+    
+    private var originImage: UIImage?
+    
+    override open var image: UIImage? {
+        get {
+            return super.image
+        }
+        set {
+            originImage = newValue
+            redrawStack()
+        }
+    }
 
     /// Should be set in whichever class is using the TouchDrawView
     open weak var delegate: TouchDrawViewDelegate?
@@ -244,7 +256,7 @@ fileprivate extension TouchDrawView {
 
     /// Ends image context and sets UIImage to what was on the context
     func endImageContext() {
-        image = UIGraphicsGetImageFromCurrentImageContext()
+        super.image = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
     }
 
@@ -256,10 +268,32 @@ fileprivate extension TouchDrawView {
     /// Clears view, then draws stack
     func redrawStack() {
         beginImageContext()
+
+        drawAspectFitOriginImage()
+        
         for stroke in stack {
             drawStroke(stroke)
         }
+        
         endImageContext()
+    }
+    
+    func drawAspectFitOriginImage() {
+        if (originImage != nil) {
+            let imageSize = originImage!.size
+            
+            let height = frame.width * imageSize.height / imageSize.width
+            if height <= frame.height {
+                let offset = (frame.height - height) / 2
+                let rect = CGRect(x: 0, y: offset, width: frame.width, height: height)
+                originImage!.draw(in: rect)
+            } else {
+                let width = frame.height * imageSize.width / imageSize.height
+                let offset = (frame.width - width) / 2
+                let rect = CGRect(x: offset, y: 0, width: width, height: frame.height)
+                originImage!.draw(in: rect)
+            }
+        }
     }
 
     /// Draws a single Stroke
